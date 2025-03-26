@@ -1,0 +1,144 @@
+<html>
+    <link rel="stylesheet" href="stylesheet.css">
+
+<div class="settings container">
+    <div class="title">
+        <span>Settings:</span>
+        <button id="LoadSettings" onclick="LoadSettings()">Reset</button>
+    </div>
+    <div id="settings" class="displaypanel">
+        <div class="row">
+            <label for="temp-field">Temperature: </label>
+            <div class="inputbox">
+                <input id="temp-field" onchange="update(this, 'temp-range')" type="number" 
+                    maxlength="2" max="100" min="0" step="1" autocomplete="off">
+                <input id="temp-range" oninput="update(this, 'temp-field')" type="range"
+                    min="60" max="80" step="1">
+            </div>
+        </div>
+        <div class="row">
+            <label for="humid-field">Humidity: </label>
+            <div class="inputbox">
+                <input id="humid-field" onchange="update(this, 'humid-range')" type="number"
+                    maxlength="2" max="100" min="0" step="1" autocomplete="off">
+                <input id="humid-range" oninput="update(this, 'humid-field')" type="range"
+                    min="40" max="70" step="1">
+            </div>
+        </div>
+        <div class="row">
+            <label for="mode">Mode: </label>
+            <div style="margin-left:auto; margin-right:auto">
+                <input type="radio" id="heat" name="mode" value="Heat">
+                <label for="heat">Heat</label>
+                <input type="radio" id="cool" name="mode" value="Cool">
+                <label for="cool">Cool</label>
+                <input type="radio" id="off" name="mode" value="Off">
+                <label for="off">Off</label>
+            </div>
+        </div>
+        <label for="SetSettings">Update Settings</label>
+        <button id="SetSettings" onclick="UpdateSettings()">Update</button>
+
+        <div id="settings-loading" class="cover">
+            <p>Loading...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    /**
+     * Updates two input elements so that their values match
+     * 
+     * @param {Element} src     HTML element that has the value we want to copy
+     * @param {string}  destId  ID string of HTML element we want to update
+     */
+    function update(src, destId)
+    {
+        var dest = document.getElementById(destId);
+        dest.value = src.value;
+    }
+</script>
+
+<script>
+    // dev_url is the always up-to-date URL to the app script, but it has restricted permissions
+    const dev_url = "https://script.google.com/macros/s/AKfycbwoQYSukNKq3RFhlIv79sgElQOyX9u-1w3FKwVS9K_J/dev";
+    // this URL is available to anyone, but needs to be updated every time we create a new deployment
+    const url = "https://script.google.com/macros/s/AKfycbyxfMRU965AvjcB1AUInSIWm-KBrSsYUhjN2pjdhtcLEhAZ2y8emH8vkK0YT09yIl_vng/exec";
+    const source = url + "?Action=GetStatusHTTP";
+    console.log(document.hasFocus());
+
+    function DisplaySettings(data)
+    {
+        var settings = {
+            "Temperature": data[0][0],
+            "Humidity": data[0][1],
+            "Mode": data[0][2],
+        }
+        console.log(settings);
+        document.getElementById("temp-field").value = settings.Temperature;
+        document.getElementById("temp-range").value = settings.Temperature;
+        document.getElementById("humid-field").value = settings.Humidity;
+        document.getElementById("humid-range").value = settings.Humidity;
+        for (radioButton of document.getElementsByName("mode"))
+            radioButton.checked = (radioButton.value == settings.Mode);
+
+        //document.getElementById("settings").style.display = "block";
+        document.getElementById("settings-loading").style.display = "none";
+    }
+
+    /**
+     * Ask the spreadsheet for the current settings and load them
+     */
+    function LoadSettings()
+    {
+        console.log("getting settings");
+        //document.getElementById("settings").style.display = "none";
+        document.getElementById("settings-loading").style.display = "block";
+        fetch(url + "?Action=GetSettingsHTTP")
+            .then((response) => response.json())
+            .then((data) => DisplaySettings(data))
+            .catch((error) => console.log(error))
+            .then(() => console.log("done loading settings"));
+    }
+
+    function UpdateSettings()
+    {
+        var temperature = document.getElementById("temp-field").value;
+        var humidity = document.getElementById("humid-field").value;
+        var mode = undefined;
+        for (radioButton of document.getElementsByName("mode"))
+            if (radioButton.checked) mode = radioButton.value;
+        SetSettings(temperature, humidity, mode);
+    }
+
+    /**
+     * Update the settings in the spreadsheet.
+     * 
+     * @param {number}  temperature Temperature setting.
+     * @param {number}  humidity    Humidity setting.
+     * @param {string}  mode        Heating mode: one of "Heat", "Cool", or "Off".
+     */
+    function SetSettings(temperature, humidity, mode)
+    {
+        var params = { 
+            "Action": "SetSettings",
+            "Temperature": temperature,
+            "Humidity": humidity,
+            "Mode": mode 
+        };
+        console.log("Setting settings:");
+        console.log(params);
+        fetch(url, {
+            method: "POST", 
+            body: JSON.stringify(params),
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        })
+            .then((response) => console.log(response))
+            .catch((error) => console.log("Error: " + error))
+            .then(() => console.log("Done updating settings"));
+    }
+
+    // load the current settings
+    LoadSettings();
+</script>
+</html>

@@ -1,0 +1,88 @@
+<html>
+    <link rel="stylesheet" href="stylesheet.css">
+
+<div class="status container">
+    <div class="title">
+        <span>Status:</span>
+        <button id="LoadStatus" onclick="LoadStatus()">Refresh</button>
+    </div>
+    <div id="status" class="displaypanel">
+        <table style="border-spacing: 0.75em;">
+            <tbody style="position:relative; top:-0.75em; ">
+                <tr>
+                    <th></th>
+                    <th>Temperature</th>
+                    <th>Humidity</th>
+                </tr>
+                <tr id="annex-status">
+                    <td>Annex</td>
+                </tr>
+                <tr id="first-status">
+                    <td>First</td>
+                </tr>
+                <tr id="second-status">
+                    <td>Second</td>
+                </tr>
+            </tbody>
+        </table>
+        <div id="status-loading" class="cover">
+            <p>Loading...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // dev_url is the always up-to-date URL to the app script, but it has restricted permissions
+    const dev_url = "https://script.google.com/macros/s/AKfycbwoQYSukNKq3RFhlIv79sgElQOyX9u-1w3FKwVS9K_J/dev";
+    // this URL is available to anyone, but needs to be updated every time we create a new deployment
+    const url = "https://script.google.com/macros/s/AKfycbyxfMRU965AvjcB1AUInSIWm-KBrSsYUhjN2pjdhtcLEhAZ2y8emH8vkK0YT09yIl_vng/exec";
+    const source = url + "?Action=GetStatusHTTP";
+    console.log(document.hasFocus());
+
+    /**
+     * Given a 2D array of values representing Temperature and Humidity for each location, add it to the page.
+     * 
+     * @param {number[][]}  d   2D array of temperature/humidity values, where the first index is the location
+     *                          and the second index is 0 for temperature, 1 for humidity.
+     */
+    function DisplayStatus(d)
+    {
+        var status = {
+            "Annex": {"Temperature": d[0][0], "Humidity": d[0][1]},
+            "First": {"Temperature": d[1][0], "Humidity": d[1][1]},
+            "Second": {"Temperature": d[2][0], "Humidity": d[2][1]},
+        };
+        //var text = "<p>Annex: " + status.Annex.Temperature + "F " + status.Annex.Humidity + "%" +
+        //"<p>First: " + status.First.Temperature + "F " + status.First.Humidity + "%" +
+        //"<p>Second: " + status.Second.Temperature + "F " + status.Second.Humidity + "%";
+        var annexText = "<td>Annex</td><td>" + status.Annex.Temperature + "</td><td>" + status.Annex.Humidity + "%</td>";
+        var firstText = "<td>First</td><td>" + status.First.Temperature + "</td><td>" + status.First.Humidity + "%</td>";
+        var secondText = "<td>Second</td><td>" + status.Second.Temperature + "</td><td>" + status.Second.Humidity + "%</td>";
+
+        //document.getElementById("status").style.display = "block";
+        document.getElementById("status-loading").style.display = "none";
+        document.getElementById("annex-status").innerHTML = annexText;
+        document.getElementById("first-status").innerHTML = firstText;
+        document.getElementById("second-status").innerHTML = secondText;
+    }
+
+    /**
+     * Ask the spreadsheet for the current status and display it.
+     */
+    function LoadStatus()
+    {
+        console.log("start loading status");
+        //document.getElementById("status").style.display = "none";
+        document.getElementById("status-loading").style.display = "block";
+        // get status through an HTTP request and then call LoadStatus
+        fetch(source)
+            .then((response) => response.json())
+            .then((data) => DisplayStatus(data))
+            .catch((error) => console.log(error)) // just log errors for now
+            .then(() => console.log("done loading status"));
+    }
+
+    // load the status
+    LoadStatus();
+</script>
+</html>
