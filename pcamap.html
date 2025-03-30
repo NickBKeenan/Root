@@ -1,0 +1,402 @@
+
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+        <meta charset="utf-8">
+        <title>PCA Boundaries</title>
+        <style>
+            /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+            #map {
+                height: 100%;
+                width: 100%;
+            }
+            /* Optional: Makes the sample page fill the window. */
+            html, body {
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+  #floating-panel {
+        position: absolute;
+        top: 10%;
+        left: 5%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+        
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }
+
+        </style>
+
+    </head>
+
+    <body>
+
+
+        <div id="map"></div>
+        <div id="mapdiv">
+            <p>x
+            <p>
+                <script src="PCAMap.js">
+                </script>
+              
+
+                
+
+
+                <script>
+
+                    //PCA Boundaries
+                    //38.940576, -77.112076 Maryland border
+                    //38.935836, -77.106411 Dalecarlia and Loughboro
+                    //38.933132, -77.091054 Loughboro and Foxhall
+                    // 38.905925, -77.079505 Foxhall and Canal
+                    // 38.903993, -77.079920
+                    // 38.907896, -77.095185 Potomac river
+                    //  38.934681, -77.119436 Maryland border
+
+
+
+
+                    var map
+                        ;
+                    var ds;
+
+                    var layers = [];
+                    var route=[];
+                    var callcount = 0;
+                    var LoughboroAndDalecarlia = { lat: 38.935836, lng: -77.106411 };
+                    var LoughboroAndFoxhall = { lat: 38.933132, lng: -77.091054 };
+                    var FoxhallAndCanal = { lat: 38.906623, lng: - 77.081114 };
+                    var oobcount=0;
+                    var responses = [];
+                    // callback routine for routing
+                    function OnRoute(response, status) {
+
+
+                        if (status == 'OK') {
+                            console.log(response);
+                            var iteration;
+                            var patharray = google.maps.geometry.encoding.decodePath(response.routes[0].overview_polyline);
+                            if (response.request.travelMode == 'DRIVING') {
+                                iteration = 0;
+                            }
+                            else {
+                                iteration = 1;
+                            }
+                            console.log(iteration);
+                            console.log(response.request.travelMode);
+                            responses[iteration] = patharray;
+
+                            callcount++;
+                            if (callcount == 2) {
+                                var y;
+                                for (y = 0; y < 2; y++) {
+                                    var x;
+                                    for (x = 0; x < responses[y].length; x++) {
+                                        route.push(responses[y][x]);
+                                    }
+                                }
+                                route.push({ lat: 38.903993, lng: - 77.079920 }); // shore of potomac
+                                route.push({ lat: 38.907896, lng: - 77.095185 }); // middle of river
+
+                                route.push({ lat: 38.934681, lng: - 77.119436 }); // maryland border
+                                route.push({ lat: 38.940576, lng: - 77.112076 });
+                                route.push(LoughboroAndDalecarlia);
+
+                            }
+                        } else {
+                            alert("directions request failed, status=" + status)
+                        }
+
+                        
+                        //38.940576, -77.112076 Maryland border
+                        //38.935836, -77.106411 Dalecarlia and Loughboro
+                        //38.933132, -77.091054 Loughboro and Foxhall
+                        // 38.905925, -77.079505 Foxhall and Canal
+                        // 38.903993, -77.079920
+                        // 38.907896, -77.095185 Potomac river
+                        //  38.934681, -77.119436 Maryland border
+
+                        var path = new google.maps.Polygon({
+                            path: route,
+                            map: map,
+                            strokeColor: "#FF0000",
+                            strokeOpacity: 1,
+                            strokeWeight: 6
+                        });
+                        path.setMap(map);
+
+                        var x;
+                        for (x = 0; x < PCAData.length; x++) {
+                            var position = new google.maps.LatLng(PCAData[x][1], PCAData[x][2]);
+
+
+
+
+                            if (google.maps.geometry.poly.containsLocation(
+                                position,
+                                path
+                            )) {
+                                //console.log("in boundaries")
+                            }
+                            else {
+                                oobcount++;
+
+                                //console.log((x + 1) + " " + PCAData[x][0] + " OOB " + oobcount);
+
+                            }
+                            const marker = new google.maps.Marker({
+                                map,
+                                position: position,
+                                fillColor: "blue",
+                                title: PCAData[x][0]
+
+
+                            });
+                            marker.setMap(map);
+
+
+                        }
+
+                    
+
+
+                    console.log(callcount);
+                    }
+                    function initMap() {
+                        console.log("hello");
+                        map = new google.maps.Map(document.getElementById('map'), {
+                            zoom: 13,
+                            center: {
+
+                                lat: 38.91918,
+                                lng: - 77.09426
+                            },
+                            mapTypeId: 'roadmap'
+                        });
+
+                        var styles = {
+                            default: null,
+                            hide:
+
+                                [{
+                                    "featureType": "administrative",
+                                    "elementType": "geometry",
+                                    "stylers": [{
+                                        "visibility": "off"
+                                    }]
+                                },
+                                {
+                                    "featureType": "poi",
+                                    "stylers": [{
+                                        "visibility": "off"
+                                    }]
+                                },
+                                {
+                                    "featureType": "road",
+                                    "elementType": "labels.icon",
+                                    "stylers": [{
+                                        "visibility": "off"
+                                    }]
+                                },
+                                {
+                                    "featureType": "road.arterial",
+                                    "elementType": "labels",
+                                    "stylers": [{
+                                        "visibility": "off"
+                                    }]
+                                },
+                                {
+                                    "featureType": "road.highway",
+                                    "elementType": "labels",
+                                    "stylers": [{
+                                        "visibility": "off"
+                                    }]
+                                },
+                                {
+                                    "featureType": "road.local",
+                                    "stylers": [{
+                                        "visibility": "off"
+                                    }]
+                                },
+                                {
+                                    "featureType": "transit",
+                                    "stylers": [{
+                                        "visibility": "off"
+                                    }]
+                                }
+                                ]
+                        };
+                        var Origin = { lat: 38.906667, lng: - 77.080708 };
+
+                        
+                        
+                        var request1 = {
+                            destination: LoughboroAndFoxhall,
+                            origin: LoughboroAndDalecarlia ,
+                            travelMode: 'DRIVING'
+                            
+                        };
+                        
+
+                        var request2 = {
+                            destination: FoxhallAndCanal,
+                            origin: LoughboroAndFoxhall,
+                            travelMode: 'WALKING'
+                         
+                        }
+                        
+                        var directionsService = new google.maps.DirectionsService();
+
+                        directionsService.route(request1, OnRoute);
+                        directionsService.route(request2, OnRoute);
+
+                        
+                    }
+                    var delayFactor = 1;
+                    function m_get_directions_route(ds, request) {
+                        ds.route(request, function (result, status) {
+                            if (status === google.maps.DirectionsStatus.OK) {
+                                RouteCallback(result, status);
+                                //Process you route here
+                            } else if (status === google.maps.DirectionsStatus.OVER_QUERY_LIMIT) {
+                                delayFactor++;
+                                setTimeout(function () {
+                                    m_get_directions_route(ds, request);
+                                }, delayFactor * 1000);
+                            } else {
+                                console.log("Route: " + status);
+                            }
+                        });
+                    }
+
+                    function RouteCallback(result, status) {
+
+                        if (status == 'OK') {
+                            console.log(result.routes[0].overview_polyline);
+                            var decodepath = google.maps.geometry.encoding.decodePath(result.routes[0].overview_polyline);
+                            //console.log(decodepath);
+
+                            var path = new google.maps.Polyline({
+                                path: decodepath,
+                                map: map,
+                                strokeColor: "#FF0000",
+                                strokeOpacity: 0.025,
+                                strokeWeight: 6
+                            });
+                            path.setMap(map);
+                            path = new google.maps.Polyline({
+                                path: decodepath,
+                                map: map,
+                                strokeColor: "#FF0000",
+                                strokeOpacity: .750,
+                                strokeWeight: 1
+                            });
+                            path.setMap(map);
+
+                        }
+
+
+                        else {
+                            console.log(status);
+                        }
+                    }
+                    // end of init
+                    function toggleGroup(groupname) {
+                        //console.log(groupname);
+                        //console.log(layers);
+                        var group = layers[groupname];
+                        var x;
+                        for (x = 0; x < group.length; x++) {
+
+                            if (group[x].visible) {
+                                group[x].setOptions({ visible: false });
+                            }
+                            else {
+                                group[x].setOptions({ visible: true });
+                            }
+                        }
+                    }
+                    function DrawBikeCircle(map, lat, lng, radius, startangle, endangle, interval) {
+                        var angle;
+                        var path = [];
+                        var newpath;
+                        //endangle = startangle + interval; //debug
+                        for (angle = startangle; angle < endangle; angle += interval) {
+
+
+                            var x, y;
+                            x = radius * Math.cos(angle * 3.14 / 180);
+                            y = radius * Math.sin(angle * 3.14 / 180);
+                            var point = { x: x, y: y };
+                            path.push(point);
+                            //console.log(x, y, angle);
+                        }
+
+                        newpath = locatepath(path, lat, lng);
+
+                        const CirclePath = new google.maps.Polyline({
+                            path: newpath,
+                            geodesic: true,
+                            strokeColor: "black",
+                            strokeOpacity: 1.0,
+                            strokeWeight: 1
+                        });
+                        CirclePath.setMap(map);
+                        var x;
+                        for (x = 0; x < newpath.length; x++) {
+
+                            var request = {
+                                origin: { lat: lat, lng: lng },
+                                destination: newpath[x],
+                                travelMode: 'BICYCLING'
+
+                            }
+                            m_get_directions_route(ds, request);
+
+
+                        }
+
+                    }
+
+                    var longfeet = 283412.1258;
+
+
+                    var latfeet = 364218;
+
+
+                    function locatepath(Path, lat, long) {
+                        var retval = [];
+                        var x;
+                        for (x = 0; x < Path.length; x++) {
+                            var point = {};
+
+                            point.lat = lat + Path[x].x * 5280 / latfeet;
+                            point.lng = long + Path[x].y * 5280 / longfeet;
+                            retval.push(point);
+                        }
+                        return retval;
+                    };
+
+                </script>
+
+
+                <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC2eTFbt9rT09SP09JCTqdHcqUU162HfTU&callback=initMap&libraries=geometry">
+
+
+                </script>
+
+        </div>
+    </body>
+
+</html>
+
+
