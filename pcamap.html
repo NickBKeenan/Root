@@ -82,10 +82,12 @@
 
 
                         if (status == 'OK') {
-                            console.log(response);
+                            
                             var iteration;
                             var patharray = google.maps.geometry.encoding.decodePath(response.routes[0].overview_polyline);
-                            if (response.request.travelMode == 'DRIVING') {
+                            //console.log(response.request.origin.location.Lat);
+
+                            if (response.request.origin.location.equals(new google.maps.LatLng(LoughboroAndDalecarlia))) {
                                 iteration = 0;
                             }
                             else {
@@ -242,7 +244,7 @@
                         var request1 = {
                             destination: LoughboroAndFoxhall,
                             origin: LoughboroAndDalecarlia ,
-                            travelMode: 'DRIVING'
+                            travelMode: 'WALKING'
                             
                         };
                         
