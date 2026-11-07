@@ -1,0 +1,581 @@
+
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+        <meta charset="utf-8">
+        <title>Bike Routes</title>
+        <style>
+            /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+            #map {
+                height: 100%;
+                width: 100%;
+            }
+            /* Optional: Makes the sample page fill the window. */
+            html, body {
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+  #floating-panel {
+        position: absolute;
+        top: 10%;
+        left: 5%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+        
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }
+
+        </style>
+
+    </head>
+
+    <body>
+
+        <div id="floating-panel">
+            Travel time<div id="layer1">
+    <div>
+        <b style="font-size: 30px; color: rgb(255, 55, 0)"> &#x2022</b>  5 Minutes
+    </div>
+    <div>
+        <b style="font-size: 30px; color: rgb(255, 170, 0)"> &#x2022</b>  15 Minutes
+    </div>
+    <div>
+        <b style="font-size: 30px; color: rgb(234, 255, 0)"> &#x2022</b>  25 Minutes
+    </div>
+    <div>
+        <b style="font-size: 30px; color: rgb(123, 255, 0)"> &#x2022</b>  35 Minutes
+    </div>
+    <div>
+        <b style="font-size: 30px; color: rgb(13, 255, 0)"> &#x2022</b>  45 Minutes
+    </div>
+    <div>
+        <b style="font-size: 30px; color: rgb(0, 255, 98)"> &#x2022</b>  55 Minutes
+    </div>
+
+</div>
+        </div>        <div id="map"></div>
+        <div id="mapdiv">
+            <p>x
+            <p>
+                <script src="BikeRtsData4.js">
+                </script>
+              
+
+                </script>
+
+
+                <script>
+                    var map
+                        ;
+                    var ds;
+
+                    var layers = [];
+                    function initMap() {
+
+                        map = new google.maps.Map(document.getElementById('map'), {
+                            zoom: 13,
+                            center: {
+
+                                lat: 38.91918,
+                                lng: - 77.09426
+                            },
+                            mapTypeId: 'roadmap'
+                        });
+
+                        var styles = {
+                            default: null,
+                            hide:
+
+                                [{
+                                    "featureType": "administrative",
+                                    "elementType": "geometry",
+                                    "stylers": [{
+                                        "visibility": "off"
+                                    }]
+                                },
+                                {
+                                    "featureType": "poi",
+                                    "stylers": [{
+                                        "visibility": "off"
+                                    }]
+                                },
+                                {
+                                    "featureType": "road",
+                                    "elementType": "labels.icon",
+                                    "stylers": [{
+                                        "visibility": "off"
+                                    }]
+                                },
+                                {
+                                    "featureType": "road.arterial",
+                                    "elementType": "labels",
+                                    "stylers": [{
+                                        "visibility": "off"
+                                    }]
+                                },
+                                {
+                                    "featureType": "road.highway",
+                                    "elementType": "labels",
+                                    "stylers": [{
+                                        "visibility": "off"
+                                    }]
+                                },
+                                {
+                                    "featureType": "road.local",
+                                    "stylers": [{
+                                        "visibility": "off"
+                                    }]
+                                },
+                                {
+                                    "featureType": "transit",
+                                    "stylers": [{
+                                        "visibility": "off"
+                                    }]
+                                }
+                                ]
+                        };
+                        var Origin = { lat: 38.906667, lng: - 77.080708 };
+                        var Mac = { lat: 38.908775, lng: -77.086215 };
+
+                        //ds = new google.maps.DirectionsService();
+                        //DrawBikeCircle(map, Origin.lat, Origin.lng, 2.25, -40, 115, 2);
+                        //DrawBikeCircle(map, Origin.lat, Origin.lng, 1.875, -40, 115, 3);
+                        //DrawBikeCircle(map, Origin.lat, Origin.lng, 1.5, -40, 115, 3);
+
+                        //DrawBikeCircle(map, Origin.lat, Origin.lng, 1.125, -40, 115, 4);
+                        //DrawBikeCircle(map, Origin.lat, Origin.lng, 0.75, -40, 115, 4);
+
+                        DrawBikeData();
+                        
+                        const marker = new google.maps.Marker({
+                            position: Origin,
+                            title: "Foundry Branch Trestle, west end",
+                            map: map,
+                        });
+                        
+
+                        var path = new google.maps.Polyline({
+                            path: [new google.maps.LatLng(Origin), new google.maps.LatLng(Mac) ],
+                            map: map,
+                            strokeColor: "#FF0000",
+                            strokeOpacity: 1,
+                            strokeWeight: 6
+                        });
+                        path.setMap(map);
+                    }
+                    var delayFactor = 1;
+                    function m_get_directions_route(ds, request) {
+                        ds.route(request, function (result, status) {
+                            if (status === google.maps.DirectionsStatus.OK) {
+                                RouteCallback(result, status);
+                                //Process you route here
+                            } else if (status === google.maps.DirectionsStatus.OVER_QUERY_LIMIT) {
+                                delayFactor++;
+                                setTimeout(function () {
+                                    m_get_directions_route(ds, request);
+                                }, delayFactor * 1000);
+                            } else {
+                                console.log("Route: " + status);
+                            }
+                        });
+                    }
+
+                    function RouteCallback(result, status) {
+
+                        if (status == 'OK') {
+                            console.log(result.routes[0].overview_polyline);
+                            var decodepath = google.maps.geometry.encoding.decodePath(result.routes[0].overview_polyline);
+                            //console.log(decodepath);
+
+                            var path = new google.maps.Polyline({
+                                path: decodepath,
+                                map: map,
+                                strokeColor: "#FF0000",
+                                strokeOpacity: 0.025,
+                                strokeWeight: 6
+                            });
+                            path.setMap(map);
+                            path = new google.maps.Polyline({
+                                path: decodepath,
+                                map: map,
+                                strokeColor: "#FF0000",
+                                strokeOpacity: .750,
+                                strokeWeight: 1
+                            });
+                            path.setMap(map);
+
+                        }
+
+
+                        else {
+                            console.log(status);
+                        }
+                    }
+                    // end of init
+                    function toggleGroup(groupname) {
+                        //console.log(groupname);
+                        //console.log(layers);
+                        var group = layers[groupname];
+                        var x;
+                        for (x = 0; x < group.length; x++) {
+
+                            if (group[x].visible) {
+                                group[x].setOptions({ visible: false });
+                            }
+                            else {
+                                group[x].setOptions({ visible: true });
+                            }
+                        }
+                    }
+                    function DrawBikeCircle(map, lat, lng, radius, startangle, endangle, interval) {
+                        var angle;
+                        var path = [];
+                        var newpath;
+                        //endangle = startangle + interval; //debug
+                        for (angle = startangle; angle < endangle; angle += interval) {
+
+
+                            var x, y;
+                            x = radius * Math.cos(angle * 3.14 / 180);
+                            y = radius * Math.sin(angle * 3.14 / 180);
+                            var point = { x: x, y: y };
+                            path.push(point);
+                            //console.log(x, y, angle);
+                        }
+
+                        newpath = locatepath(path, lat, lng);
+
+                        const CirclePath = new google.maps.Polyline({
+                            path: newpath,
+                            geodesic: true,
+                            strokeColor: "black",
+                            strokeOpacity: 1.0,
+                            strokeWeight: 1
+                        });
+                        CirclePath.setMap(map);
+                        var x;
+                        for (x = 0; x < newpath.length; x++) {
+
+                            var request = {
+                                origin: { lat: lat, lng: lng },
+                                destination: newpath[x],
+                                travelMode: 'BICYCLING'
+
+                            }
+                            m_get_directions_route(ds, request);
+
+
+                        }
+
+                    }
+
+                    var longfeet = 283412.1258;
+
+
+                    var latfeet = 364218;
+
+
+                    function locatepath(Path, lat, long) {
+                        var retval = [];
+                        var x;
+                        for (x = 0; x < Path.length; x++) {
+                            var point = {};
+
+                            point.lat = lat + Path[x].x * 5280 / latfeet;
+                            point.lng = long + Path[x].y * 5280 / longfeet;
+                            retval.push(point);
+                        }
+                        return retval;
+                    };
+
+                    function DrawBikeGrid() {
+
+                        var start = { lat: 38.9356179, lng: - 77.1134902 };
+
+                        var interval = 1400;
+                        var latRowIncrement = interval / latfeet;
+                        var latColIncrement = interval / latfeet;
+                        var lngRowIncrement = interval / longfeet;
+                        var lngColIncrement = interval / longfeet;
+
+                        var x, y;
+                        for (x = 0; x < 20; x++) {
+                            for (y = 0; y < 20; y++) {
+                                var lat = start.lat - (x * latRowIncrement) + (y * latColIncrement);
+                                var lng = start.lng + (x * lngRowIncrement) + (y * lngColIncrement);
+                                //console.log(lat, lng);
+                                var dot = new google.maps.Circle({
+                                    radius: 10,
+                                    center: { lat: lat, lng: lng },
+
+                                    geodesic: true,
+                                    strokeColor: '#0000FF',
+                                    strokeOpacity: 1.0,
+                                    strokeWeight: 5
+                                });
+                                dot.setMap(map);
+
+
+                            }
+                        }
+
+                    }
+                    function DrawBikeData() {
+
+                        var x;
+                        layers["existing"] = [];
+                        for (x = 0; x < Googlepaths.length; x++) {
+                            var path = Googlepaths[x];
+                            
+                            //console.log(path);
+                            var plotpoint = true;
+                            /*if (path.bridgepath.address.duration.value + 120 > path.nonbridgepath.address.duration.value && path.bridgepath.address.duration.value > 25*60) {
+                                plotpoint = false;
+                            }*/
+                            var decodepath = google.maps.geometry.encoding.decodePath(path.bridgepath.address.overview_polyline.points);
+
+                            var z;
+                            for (z = 0; z < decodepath.length && plotpoint; z++)
+                            {
+                                
+                                if (decodepath[z].lat() < 38.908460000000005) // canal rd
+                                {
+                                    plotpoint = false;
+                                }
+                                if (decodepath[z].lat()== 38.91268) // reservoir road
+                                {
+                                    plotpoint = false;
+
+                                }
+                            }
+
+                            if (path.bridgepath.address.duration.value === 'NA') {
+                                plotpoint = false;
+                            }
+                            if (plotpoint) {
+                                //console.log("plotting");
+                                    var eightthirty = 1673875800;
+                                    var time = path.bridgepath.address.duration.value;
+                                    var square;
+                                    // do heatmap
+                                
+
+                                //console.log(path.duration.value);
+                                //console.log(path.lat, path.lng);
+                                /*var dot = new google.maps.Circle({
+                                    radius: 10,
+                                    center: { lat: path.lat, lng: path.lng },
+
+                                    geodesic: true,
+                                    strokeColor: '#0000FF',
+                                    strokeOpacity: 0,
+                                    strokeWeight: 1,
+                                    title: path.bridgepath.address.duration.text + path.bridgepath.address.start_address
+                                });
+                                dot.setMap(map);
+
+                                google.maps.event.addListener(dot, 'mouseover', function () {
+                                    this.getMap().getDiv().setAttribute('title', this.title);
+
+                                    this.setOptions({ strokeOpacity: 1.0 });
+
+                                });*/
+                                var centerLat = path.lat;
+                                var centerLng = path.lng;
+                                var longfeet = 283412.1258;
+                                var latfeet = 364218;
+
+                                var latincrement = 440 * 3 / latfeet / 4;
+                                var longincrement = 440 * 3 / longfeet / 4;
+
+
+                                var NE, NW, SE, SW;
+                                NE = { lat: centerLat + latincrement, lng: centerLng + longincrement };
+                                NW = { lat: centerLat + latincrement, lng: centerLng - longincrement };
+                                SE = { lat: centerLat - latincrement, lng: centerLng + longincrement };
+                                SW = { lat: centerLat - latincrement, lng: centerLng - longincrement };
+
+
+
+                                var squarepath = [NE, NW, SW, SE, NE];
+                                var squarecolor;
+                                if (time != "NA") {
+
+
+                                    var heatindex = time / (90 * 60);
+
+                                    squarecolor = "hsl(" + (heatindex) * 240 + ",100%, 50%)";
+                                }
+                                else {
+                                    squarecolor = "hsl(255,2%, 97%)";
+                                }
+
+                                square = new google.maps.Polygon({
+                                    paths: squarepath,
+                                    strokeColor: "#FFFFFF",
+                                    strokeOpacity: 0,
+                                    strokeWeight: 1,
+                                    fillColor: squarecolor,
+                                    fillOpacity: 0.70,
+                                    zIndex: 10,
+                                    title: path.bridgepath.address.duration.text //+ path.bridgepath.address.start_address+" ("+x+") "
+                                });
+
+                                //
+                                google.maps.event.addListener(square, 'mouseover', function () {
+                                    this.getMap().getDiv().setAttribute('title', this.title);
+
+                                    this.setOptions({ strokeOpacity: 1.0 });
+
+                                });
+
+                                // end of heatmap
+                                square.setMap(map);
+
+
+                                //console.log(decodepath);
+
+                                var path = new google.maps.Polyline({
+                                    path: decodepath,
+                                    map: map,
+                                    strokeColor: "#FF0000",
+                                    strokeOpacity: 0.025,
+                                    strokeWeight: 6
+                                });
+                                path.setMap(map);
+                                layers["existing"].push(path);
+                                path = new google.maps.Polyline({
+                                    path: decodepath,
+                                    map: map,
+                                    strokeColor: "#FF0000",
+                                    strokeOpacity: .750,
+                                    strokeWeight: 1
+                                });
+                                layers["existing"].push(path);
+                                path.setMap(map);
+                            }
+                        }
+                    }
+
+                    //adapded from answer above
+                    function TxtOverlay(pos, txt, cls, map) {
+                        // Now initialize all properties.
+                        this.pos = pos;
+                        this.txt_ = txt;
+                        this.cls_ = cls;
+                        this.map_ = map;
+
+                        // We define a property to hold the image's
+                        // div. We'll actually create this div
+                        // upon receipt of the add() method so we'll
+                        // leave it null for now.
+                        this.div_ = null;
+
+                        this.onAdd = function () {
+                            // Note: an overlay's receipt of onAdd() indicates that
+                            // the map's panes are now available for attaching
+                            // the overlay to the map via the DOM.
+
+                            // Create the DIV and set some basic attributes.
+                            var div = document.createElement('DIV');
+                            div.className = this.cls_;
+
+                            div.innerHTML = this.txt_;
+
+                            // Set the overlay's div_ property to this DIV
+                            this.div_ = div;
+                            var overlayProjection = this.getProjection();
+                            var position = overlayProjection.fromLatLngToDivPixel(this.pos);
+                            div.style.left = position.x + 'px';
+                            div.style.top = position.y + 'px';
+                            // We add an overlay to a map via one of the map's panes.
+
+                            div.style.setProperty("position", "fixed");
+
+                            div.style.setProperty("font-size", "14pt");
+                            var panes = this.getPanes();
+                            panes.floatPane.appendChild(div);
+                            if (this.visible) {
+                                this.show();
+                            }
+                            else {
+                                this.hide();
+                            }
+                        }
+
+                        this.draw = function () {
+                            var overlayProjection = this.getProjection();
+
+                            // Retrieve the southwest and northeast coordinates of this overlay
+                            // in latlngs and convert them to pixels coordinates.
+                            // We'll use these coordinates to resize the DIV.
+                            var position = overlayProjection.fromLatLngToDivPixel(this.pos);
+
+                            var div = this.div_;
+                            div.style.left = Math.round(position.x - div.offsetWidth / 2) + 'px';
+                            div.style.top = Math.round(position.y - div.offsetHeight / 2) + 'px';
+
+
+                        }
+
+                        this.onRemove = function () {
+                            this.div_.parentNode.removeChild(this.div_);
+                            this.div_ = null;
+                        }
+
+                        this.hide = function () {
+                            if (this.div_) {
+                                this.div_.style.visibility = "hidden";
+                            }
+                        }
+
+                        this.show = function () {
+                            if (this.div_) {
+                                this.div_.style.visibility = "visible";
+                            }
+                        }
+
+                        this.toggle = function () {
+                            if (this.div_) {
+                                if (this.div_.style.visibility == "hidden") {
+                                    this.show();
+                                } else {
+                                    this.hide();
+                                }
+                            }
+                        }
+
+                        this.toggleDOM = function () {
+                            if (this.getMap()) {
+                                this.setMap(null);
+                            } else {
+                                this.setMap(this.map_);
+                            }
+                        }
+
+                        // Explicitly call setMap() on this overlay
+                        this.setMap(map);
+                    }
+
+                </script>
+
+
+                <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDhKILySJcp-1Sr5sVRtYlr9sLLak4HE3A&callback=initMap&libraries=geometry">
+
+
+                </script>
+
+        </div>
+    </body>
+
+</html>
+
+
